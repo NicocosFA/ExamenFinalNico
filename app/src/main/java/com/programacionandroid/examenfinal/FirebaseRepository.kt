@@ -1,14 +1,45 @@
 package com.programacionandroid.examenfinal
 
+import com.google.firebase.Firebase
+import com.google.firebase.database.database
+
 class FirebaseRepository {
-    // Method to read data from Firebase Firestore
+    private val database = Firebase.database.reference
+
     fun getItems(): List<Item> {
-        // TODO: Implementar logica para leer datos de Firestore
-        return emptyList()
+        val items = mutableListOf<Item>()
+
+        database.child("items").get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.children.forEach { child ->
+                    val item = Item(
+                        id = child.key ?: "",
+                        name = child.child("name").value as? String ?: "",
+                        description = child.child("description").value as? String ?: ""
+                    )
+                    items.add(item)
+                }
+                println("Items guardados: ${items.size}")
+            }
+            .addOnFailureListener {
+                println("Error al obtener items: ${it.message}")
+            }
+
+        return items
     }
 
-    // Method to add a new item to Firebase Firestore
     fun addItem(item: Item) {
-        // TODO: Implementar logica para agregar un nuevo item a Firestore
+        val itemMap = hashMapOf(
+            "name" to item.name,
+            "description" to item.description
+        )
+
+        database.child("items").push().setValue(itemMap)
+            .addOnSuccessListener {
+                println("Item agregado")
+            }
+            .addOnFailureListener {
+                println("Error al agregar item: ${it.message}")
+            }
     }
 }

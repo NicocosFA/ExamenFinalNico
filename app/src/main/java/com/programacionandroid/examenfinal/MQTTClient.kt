@@ -1,20 +1,41 @@
 package com.programacionandroid.examenfinal
 
+import org.eclipse.paho.client.mqttv3.*
+
 class MQTTClient {
+    private var client: MqttClient? = null
 
-    // Metodo para publicar un mensaje utilizando Eclipse Paho
+    init {
+        try {
+            client = MqttClient(
+                "tcp://broker.hivemq.com:1883",
+                "Nicolas123",
+                null
+            )
+            client?.connect()
+        } catch (e: Exception) {
+            println("Error al conectar MQTT: ${e.message}")
+        }
+    }
+
     fun publishMessage(topic: String, message: String) {
-        // TODO: Implementar logica para publicar un mensaje utilizando Eclipse Paho
+        try {
+            if (validarMensaje(message)) {
+                val mqttMessage = MqttMessage()
+                mqttMessage.payload = message.toByteArray()
+                client?.publish(topic, mqttMessage)
+                println("Mensaje enviado: $message")
+            }
+        } catch (e: Exception) {
+            println("Error al publicar: ${e.message}")
+        }
     }
 
-    // Callback para cuando se recibe un mensaje
-    fun onMessageArrived(topic: String, message: String) {
-        // TODO: Implementar la logica para manejar el mensaje recibido
+    fun mensajeRecibido(topic: String, message: String) {
+        println("Mensaje recibido en $topic: $message")
     }
 
-    // Metodo para validar la estructura del mensaje recibido
-    fun validateMessage(message: String): Boolean {
-        // TODO: Implementar logica para validar la estructura del mensaje recibido
-        return false
+    fun validarMensaje(message: String): Boolean {
+        return message.isNotEmpty()
     }
 }

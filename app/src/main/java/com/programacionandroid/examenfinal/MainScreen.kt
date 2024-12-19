@@ -1,35 +1,37 @@
 package com.programacionandroid.examenfinal
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun MainScreen() {
     var message by remember { mutableStateOf("") }
-    var topic by remember { mutableStateOf("") }
-    var receivedMessage by remember { mutableStateOf("") }
+    var topic by remember { mutableStateOf("test/topic") }
+    var items by remember { mutableStateOf(listOf<Item>()) }
+
+    val mqttClient = remember { MQTTClient() }
+    val firebaseRepository = remember { FirebaseRepository() }
+
+    LaunchedEffect(Unit) {
+        items = firebaseRepository.getItems()
+    }
 
     Column(modifier = Modifier.padding(16.dp)) {
+        Text("MQTT Messages", style = MaterialTheme.typography.titleMedium)
+
         TextField(
             value = topic,
             onValueChange = { topic = it },
             label = { Text("Topic") },
             modifier = Modifier.fillMaxWidth()
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         TextField(
             value = message,
@@ -40,18 +42,39 @@ fun MainScreen() {
 
         Button(
             onClick = {
-                // TODO: Llamar a publishMessage
+                if (message.isNotEmpty()) {
+                    mqttClient.publishMessage(topic, message)
+                    firebaseRepository.addItem(Item(
+                        name = topic,
+                        description = message,
+                        id = ("")
+                    ))
+                    message = ""
+                    items = firebaseRepository.getItems()
+                }
             },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
             Text("Enviar Mensaje")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Text("Firebase Items", style = MaterialTheme.typography.titleMedium)
 
-        Text("Mensajes Recibidos:", style = MaterialTheme.typography.bodySmall)
-        Text(receivedMessage, style = MaterialTheme.typography.headlineMedium)
-
-        // TODO: Desplegar la lista de mensajes recibidos
+        LazyColumn {
+            items(items) { item ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text(item.name, style = MaterialTheme.typography.bodyMedium)
+                        Text(item.description, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
     }
 }
